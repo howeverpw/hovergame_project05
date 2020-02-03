@@ -1,0 +1,13 @@
+<launch>
+  <node pkg="teleop_twist_keyboard" type="teleop_twist_keyboard.py" name="keyboard_to_twist">
+    <!-- <param name="autorepeat_rate" value="1" /> -->
+  </node>
+<!--   
+  <node pkg="joy" type="joy_node" name="joystick">
+    <param name="autorepeat_rate" value="1" />
+  </node>
+
+  <node pkg="teleop_twist_joy" type="teleop_node" name="joystick_to_twist">
+    <param name="scale_angular" value="4" />
+  </node> -->
+</launch>

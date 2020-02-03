@@ -1,0 +1,8 @@
+prefix=/home/pi/airstrategist_ws/devel
+
+Name: mlx90614_sensor
+Description: Description of mlx90614_sensor
+Version: 0.0.0
+Cflags: 
+Libs: -L/home/pi/airstrategist_ws/devel/lib 
+Requires: 

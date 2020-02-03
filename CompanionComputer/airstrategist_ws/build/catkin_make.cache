@@ -1,0 +1,2 @@
+hovergames_drone:mavros_offboard:mlx90614_sensor:opencv_tracking:raspicam_node
+-DCATKIN_DEVEL_PREFIX=/home/pi/airstrategist_ws/devel -DCMAKE_INSTALL_PREFIX=/home/pi/airstrategist_ws/install -G Unix Makefiles

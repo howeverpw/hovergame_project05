@@ -1,0 +1,6 @@
+<launch>
+  <node name="http_client" pkg="opencv_tracking" type="http_client_node.py" output="screen">
+
+  <param name="enable_imv" value="true"/>
+	</node>
+</launch>

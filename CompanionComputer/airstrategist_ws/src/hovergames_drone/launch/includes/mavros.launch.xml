@@ -1,0 +1,3 @@
+<launch>
+  <node name="mavros" pkg="mavros" type="mavros_node" output="screen"/>
+</launch>

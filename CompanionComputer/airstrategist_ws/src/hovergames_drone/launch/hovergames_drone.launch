@@ -1,0 +1,10 @@
+<launch>
+  <!-- <include file="$(hovergames_drone)/launch/includes/teleop.launch.xml" /> -->
+
+  <!-- <include file="$(find mavros_offboard)/launch/mavros_offboard.launch" /> -->
+  <include file="$(find mlx90614_sensor)/launch/mlx90614_sensor.launch" />
+
+  <include file="$(find raspicam_node)/launch/camerav2_1280x960.launch" />
+  <include file="$(find hovergames_drone)/launch/includes/opencv.launch.xml" />
+  <include file="$(find hovergames_drone)/launch/includes/http_client.launch.xml" />
+</launch>

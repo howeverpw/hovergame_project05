@@ -1,0 +1,21 @@
+<resources>
+    <string name="app_name">Air Strategist Companion</string>
+
+    <string name="button_send">Start SOS</string>
+    <string name="textView2">Start GPS Updates to see the server\'s response.</string>
+
+    <string name="latitude_label">Latitude</string>
+    <string name="longitude_label">Longitude</string>
+    <string name="last_update_time_label">Last location update time</string>
+
+    <string name="start_updates">Start Pos. Tracking</string>
+    <string name="stop_updates">Stop Pos. Tracking</string>
+
+    <string name="location_settings_inadequate_warning">The location settings on the device are not
+        adequate to run this sample. Fix in Settings.</string>
+
+    <string name="permission_rationale">Location permission is needed for core functionality</string>
+    <string name="permission_denied_explanation">Permission was denied, but is needed for core
+        functionality.</string>
+    <string name="settings">Settings</string>
+</resources>

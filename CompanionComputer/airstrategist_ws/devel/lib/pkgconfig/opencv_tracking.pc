@@ -1,0 +1,8 @@
+prefix=/home/pi/airstrategist_ws/devel
+
+Name: opencv_tracking
+Description: Description of opencv_tracking
+Version: 0.0.0
+Cflags: 
+Libs: -L/home/pi/airstrategist_ws/devel/lib 
+Requires: 

@@ -1,0 +1,3 @@
+<launch>
+  <node name="mavros_offboard" pkg="mavros_offboard" type="mavros_offboard_node" output="screen"/>
+</launch>

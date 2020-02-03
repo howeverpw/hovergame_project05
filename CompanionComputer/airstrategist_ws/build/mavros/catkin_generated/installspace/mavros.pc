@@ -1,0 +1,8 @@
+prefix=/home/pi/airstrategist_ws/install
+
+Name: mavros
+Description: Description of mavros
+Version: 0.0.0
+Cflags: 
+Libs: -L/home/pi/airstrategist_ws/install/lib 
+Requires: 

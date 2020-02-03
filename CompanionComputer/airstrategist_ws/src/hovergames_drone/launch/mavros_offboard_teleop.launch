@@ -1,0 +1,18 @@
+<launch>
+	<include file="$(find mavros)/launch/px4.launch">
+	<!-- <include file="$(find edukit_bot)/launch/px4.launch"> -->
+	  <!-- all vars that included.launch requires must be set -->
+	  <!-- <arg name="fcu_url" value="udp://:14540@127.0.0.1:14557" /> -->
+	</include>
+
+<!--   <param name="fcu_url" value="udp://:14540@127.0.0.1:14557" />
+  <include file="$(find mavros_node)/launch/px4.launch" /> -->
+
+  <include file="$(find mavros_offboard)/launch/mavros_offboard.launch" />
+
+<!--   <include file="$(find edukit_bot)/launch/includes/teleop.launch.xml" />
+  <include file="$(find edukit_bot)/launch/includes/control.launch.xml" />
+  <include file="$(find edukit_bot)/launch/includes/mavros.launch.xml" />
+
+  <include file="$(find raspicam_node)/launch/camerav2_1280x960.launch" /> -->
+</launch>

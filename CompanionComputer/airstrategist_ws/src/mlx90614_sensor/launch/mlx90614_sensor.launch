@@ -1,0 +1,3 @@
+<launch>
+  <node name="mlx90614_sensor" pkg="mlx90614_sensor" type="mlx90614_sensor_node" output="screen"/>
+</launch>

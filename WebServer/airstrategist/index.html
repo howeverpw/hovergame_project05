@@ -1,0 +1,902 @@
+<!DOCTYPE html >
+  <head>
+    <meta name="viewport" content="initial-scale=1.0, user-scalable=no" />
+    <meta http-equiv="content-type" content="text/html; charset=UTF-8"/>
+    <title>Air Strategist Companion - Hovergames</title>
+    <style>
+      /* Always set the map height explicitly to define the size of the div
+       * element that contains the map. */
+      #map {
+        height: 92%; /*85%;*/
+      }
+      /* Optional: Makes the sample page fill the window. */
+      html, body {
+        height: 100%;
+        margin: 0;
+        padding: 0;
+        font-family: "Verdana", Verdana, serif;
+        color: #303050;
+      }
+      .fire_tracking_frame {
+        background-color: lightblue;
+        height: 15%;
+        margin: 0;
+        padding: 0;
+      }
+      .drone_data_display_div {
+        width:64%;
+        height:8%;
+        float:left;
+        font-size: 14px;
+        /*font-size: 2vw;*/
+        background-color: #f9f2ec;
+      }
+      .crew_data_display_div {
+        width:36%;
+        height:8%;
+        float:left;
+        font-size: 14px;
+        /*font-size: 2vw;*/
+        background-color: #f9f2ec;
+      }
+      .title {
+        color: #1d1d30;
+      }
+      .overlay_image {
+        position: absolute; 
+        bottom: 70px;/*top: 120px;*/ 
+        left: 5px; /*width:300px;*/ 
+        width:30vw; 
+        z-index: 500;
+      }
+      @media only screen and (max-width:800px) {
+        .overlay_image {
+        position: absolute; 
+        bottom: 50px;/*top: 120px;*/ 
+        left: 5px; /*width:300px;*/ 
+        width:55vw; 
+        z-index: 500;
+      }
+      }
+
+    </style>
+  </head>
+
+<html>
+  <body>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.1/jquery.min.js"></script>
+    <div id="map" style="z-index: 1;"></div>
+
+    <!-- <div style="position: absolute; top: 0px; left: 400px; z-index: 500;"> -->
+    <!-- <div style="position: absolute; top: 20px; left:0px; z-index: 500;"> -->
+<!--     <div style="position: absolute; top: 1.5vw; left:0px; z-index: 500;">
+      <h1 class="title"; style="font-size: 3.0vw">Air Strategist Companion - Hovergames</h1>
+    </div> -->
+
+<!--     <div>
+      <img src="image_data/fire_tracking_frame.jpg" 
+        style="position: absolute; bottom: 25px;/*top: 120px;*/ left: 5px; /*width:300px;*/ width:30vw; z-index: 500;" id="overlay_image_id"/>
+    </div> -->
+
+    <div>
+      <img src="image_data/fire_tracking_frame.jpg" class="overlay_image" id="overlay_image_id"/>
+    </div>
+
+    <div id="drone_data" class='drone_data_display_div'>
+      <div id=task_mode_display></div>
+      <select name="Drone Task Mode" id="drone_task" onchange="drone_taskChange()">
+        <option value="1">Track Pattern</option>
+        <option value="2">Track Fire Spot 1</option>
+        <option value="3">Track Fire Spot 2</option>
+        <option value="4">Track Fire Spot 3</option>
+        <option value="5">Track all Spots</option>
+        <option value="6">Track Crew Member</option>
+        <option value="7">Track All Crew Members</option>
+      </select>
+
+      <div id="drone_task_message"></div>
+    </div>
+
+    <div id="crew_member_data" class='crew_data_display_div'>
+      <div id=cur_crew_member_display></div>
+      <select name="Track Crew Member" id="crew_member" onchange="crew_memberChange()">
+        <option value="1">Crew member 1</option>
+        <option value="2">Crew member 2</option>
+        <option value="3">Crew member 3</option>
+        <option value="4">Crew member 4</option>
+        <option value="5">Crew member 5</option>
+        <option value="6">Crew member 6</option>
+      </select>
+
+      <div id="track_crem_member_message"></div>
+    </div>
+
+    <!-- <div id="firefighters_data" class='data_display_div'>Fire fighters data...</div> -->
+
+  <div id="drone_task_message"></div>
+
+  <div id="current_weather">Wait for the current weather...</div>
+
+  <div id="weather_forecast">Wait for the weather forecast...</div>
+
+    <script>
+      var customLabel = {
+        restaurant: {
+          label: 'R'
+        },
+        bar: {
+          label: 'B'
+        },
+        fire_fighter: {
+          label: 'H'
+        },
+        fire_position: {
+          label: 'F'
+        },
+        drone_position: {
+          label: 'D'
+        }
+      };
+
+      var statusIcon = {
+        normal: {
+          url: 'https://maps.google.com/mapfiles/ms/icons/green-dot.png'
+        },
+        help: {
+          url: 'https://maps.google.com/mapfiles/ms/icons/red-dot.png'
+        }
+      };
+
+
+      // Alalay lake
+      // var initial_drone_latitude = -17.417266;
+      // var initial_drone_longitude = -66.132659;
+
+      // TecBolivia
+      var initial_drone_latitude = -17.396963;
+      var initial_drone_longitude = -66.154016;
+
+      var fire_poly_coord_array_1 = [];
+      var fire_poly_coord_array_2 = [];
+      var fire_poly_coord_array_3 = [];
+      // var myglobal = 'x';
+
+      var fireSpot1;
+      var fireSpot2;
+      var fireSpot3;
+      var fire_marker;
+      var drone_marker;
+      var fighter_marker;
+      var fighter_marker_array = [];
+
+      var map;
+      var image;
+
+      var is_initializing = true;
+
+      var task_command = null;
+      var sel_crew_member_name = "";
+      var sel_crew_member_idx = null;
+      var task_cmd_post_data = {};
+      var task_command = 1;
+
+      var drone_latitude = null;
+      var drone_longitude = null;
+
+      var weather_get_alternation = true;
+
+      function initMap() {
+
+        
+
+        // var map = new google.maps.Map(document.getElementById('map'), {
+        map = new google.maps.Map(document.getElementById('map'), {
+          // center: new google.maps.LatLng(-17.417266, -66.132659),
+          center: new google.maps.LatLng(initial_drone_latitude, initial_drone_longitude),
+            mapTypeId: 'satellite',
+            zoom: 18
+        });
+
+        var infoWindow = new google.maps.InfoWindow;
+
+          downloadUrl('drone_telemetry_conv.xml', refreshMapCallback);
+
+          setInterval(refreshMapCallback, 3000);
+
+          //////// -------- Refresh map  ---------------------------
+          function refreshMapCallback() {
+            console.log('refreshMapCallback timeout!');
+
+            ////// -------- Refresh fire fighter data ---------------------------
+            // downloadUrl('https://storage.googleapis.com/mapsdevsite/json/mapmarkers2.xml', function(data) {
+            // downloadUrl('map/mapmarkers2.xml', function(data) {
+            downloadUrl('fighter_data/dump_fighter_data_xml.php', function(data) {
+              var xml = data.responseXML;
+              var fighters = xml.documentElement.getElementsByTagName('fighter');
+
+              // Delete all previous fire fighter markers
+              fa_len = fighter_marker_array.length;
+              for (i = 0; i < fa_len; i++) {
+                var marker = fighter_marker_array[i];
+                if (marker){
+                  marker.setMap(null);
+                  marker = null;
+                }
+              }
+
+              // Delete all fire fighter marker references
+              fighter_marker_array = [];
+              var fighter_index = 0;
+            
+              // Draw markers for all firefighters
+              Array.prototype.forEach.call(fighters, function(fighterElem) {
+                var id_code = fighterElem.getAttribute('id_code');
+                var name = fighterElem.getAttribute('name');
+                var unix_time = fighterElem.getAttribute('unix_time');
+                var status = fighterElem.getAttribute('status');
+                // console.log("status: " + status);
+                // var type = fighterElem.getAttribute('type');
+                var type = 'fire_fighter';
+                var latitude = parseFloat(fighterElem.getAttribute('latitude'));
+                var longitude = parseFloat(fighterElem.getAttribute('longitude'));
+                // var point = new google.maps.LatLng(
+                //     parseFloat(fighterElem.getAttribute('latitude')),
+                //     parseFloat(fighterElem.getAttribute('longitude')));
+                var point = new google.maps.LatLng(
+                    latitude,
+                    longitude);
+
+                var infowincontent = document.createElement('div');
+                var strong = document.createElement('strong');
+                strong.textContent = name
+                infowincontent.appendChild(strong);
+                infowincontent.appendChild(document.createElement('br'));
+
+                var text = document.createElement('text');
+
+                // text.textContent = unix_time
+                dateObj = new Date(unix_time * 1000); 
+                utcString = dateObj.toUTCString(); 
+                time = utcString.slice(-11, -4);
+                // text.textContent = time;
+
+                var infowincontent = document.createElement('div');
+                var strong = document.createElement('strong');
+                strong.textContent = "Name: " + name;
+                infowincontent.appendChild(strong);
+                infowincontent.appendChild(document.createElement('br'));
+
+                var text = document.createElement('text');
+                // Show data rounding decimals. Convert first from string to float
+                text.textContent = "[ Status: " + status + '\n'
+                                  + " ][ ID: " + id_code + "\n"
+                                  + " ][ Lat: " + parseFloat(latitude).toFixed(5) + '\n'
+                                  + " ][ Lon: " + parseFloat(longitude).toFixed(5) + " ]"
+                                  ;
+                infowincontent.appendChild(text);
+                
+                // infowincontent.appendChild(text);
+                var icon = customLabel[type] || {};
+
+                var icon_source = statusIcon[status] || {}; 
+                // console.log('icon_source.url', icon_source.url)
+
+                var fighter_marker = new google.maps.Marker({
+                  map: map,
+                  position: point,
+                  // icon: {url: "https://maps.google.com/mapfiles/ms/icons/green-dot.png",
+                  //         scaledSize: new google.maps.Size(50, 50), // scaled size
+                  //       },
+                  icon: {url: icon_source.url,
+                          scaledSize: new google.maps.Size(50, 50), // scaled size
+                        },
+                  label: icon.label
+                });
+                fighter_marker.addListener('click', function() {
+                  infoWindow.setContent(infowincontent);
+                  infoWindow.open(map, fighter_marker);
+                });
+                fighter_marker_array[fighter_index] = fighter_marker;
+                fighter_index = fighter_index + 1;
+              });
+
+            });
+            ////// END: -------- Refresh fire fighter data ---------------------------
+
+            ////// -------- Refresh fire tracking frame ---------------------------
+
+            var myImageElement = document.getElementById('overlay_image_id');
+            myImageElement.src = 'image_data/fire_tracking_frame.jpg?rand=' + Math.random();
+            ////// END: -------- Refresh fire tracking frame ---------------------------
+
+            ////// -------- Refresh drone task mode ---------------------------
+            // const now = Date.now(); // Unix timestamp in milliseconds
+            downloadUrl('commands.xml?time=' + Math.random(), function(data) {
+              var xml = data.responseXML;
+              var cur_task_mode_cmd = xml.getElementsByTagName("task_mode_cmd")[0].getAttribute('cmd_value');
+              cur_crew_member_name = xml.getElementsByTagName("task_mode_cmd")[0].getAttribute('sel_crew_member_name');
+              cur_crew_member_value = xml.getElementsByTagName("task_mode_cmd")[0].getAttribute('sel_crew_member_idx');
+
+              console.log('cur_task_mode_cmd: ', cur_task_mode_cmd);
+              console.log('cur_crew_member_name: ', cur_crew_member_name);
+              console.log('cur_crew_member_value: ', cur_crew_member_value);
+              // console.log(typeof cur_task_mode_cmd);
+
+              const drone_tasks = {
+                  TRACK_PATTERN: '1',
+                  TRACK_FIRE_SPOT_1: '2',
+                  TRACK_FIRE_SPOT_2: '3',
+                  TRACK_FIRE_SPOT_3: '4',
+                  TRACK_ALL_SPOTS: '5',
+                  TRACK_CREW_MEMBER: '6',
+                  TRACK_ALL_CREW_MEMBERS: '7'
+              };
+
+              var task_name = 'Default';
+              switch(cur_task_mode_cmd){
+                  case drone_tasks.TRACK_PATTERN:
+                  var task_name = 'FIRE_PATTERN';
+                  break;
+
+                  case drone_tasks.TRACK_FIRE_SPOT_1:
+                  var task_name = 'FIRE_SPOT_1';
+                  break;
+
+                  case drone_tasks.TRACK_FIRE_SPOT_2:
+                  var task_name = 'FIRE_SPOT_2';
+                  break;
+
+                  case drone_tasks.TRACK_FIRE_SPOT_3:
+                  var task_name = 'FIRE_SPOT_3';
+                  break;
+
+                  case drone_tasks.TRACK_ALL_SPOTS:
+                  var task_name = 'ALL_SPOTS';
+                  break;
+
+                  case drone_tasks.TRACK_CREW_MEMBER:
+                  var task_name = 'CREW_MEMBER';
+                  break;
+
+                  case drone_tasks.TRACK_ALL_CREW_MEMBERS:
+                  var task_name = 'ALL_CREW_MEMBERS';
+                  break;
+              }
+              // Refresh track mode in web page
+              document.getElementById('task_mode_display').innerHTML = 'Track Mode: ' + task_name;
+
+              // Change selected task in the dropdown list
+              document.getElementById('drone_task').value = cur_task_mode_cmd;
+
+              // Refresh selected crew member in web page
+              document.getElementById('cur_crew_member_display').innerHTML = 'Sel: ' + cur_crew_member_name;
+
+              // Change selected crew member in the dropdown list
+              document.getElementById('crew_member').value = cur_crew_member_value;
+            });
+
+            ////// -------- Refresh drone telemetry data (drone, fire pos, fire polygons ---------
+            downloadUrl('drone_telemetry_conv.xml', function(data) {
+              var xml = data.responseXML;
+
+              //// -------- Show fire centroid GPS coordinates on the map -------- ////
+              // Get fire spot GPS coordinates as strings
+              var fire_spot_latitude = xml.getElementsByTagName("fire_pos_x")[0].childNodes[0].textContent;
+              var fire_spot_longitude = xml.getElementsByTagName("fire_pos_y")[0].childNodes[0].textContent;
+              // console.log('fire_spot: ' + fire_spot_latitude + ', ' + fire_spot_longitude);
+              var fire_temperature = xml.getElementsByTagName("fire_temp")[0].childNodes[0].textContent;
+              // console.log('fire_temperature: ' + fire_temperature);
+
+              // Get drone GPS coordinates as strings
+              // var drone_latitude = initial_drone_latitude;
+              window.drone_latitude = initial_drone_latitude;
+              if(xml.getElementsByTagName("drone_latitude")[0]) {
+                // var drone_latitude = xml.getElementsByTagName("drone_latitude")[0].childNodes[0].textContent;
+                window.drone_latitude = xml.getElementsByTagName("drone_latitude")[0].childNodes[0].textContent;
+              }
+
+              // var drone_longitude = initial_drone_longitude;
+              window.drone_longitude = initial_drone_longitude;
+              if(xml.getElementsByTagName("drone_longitude")[0]) {
+                // var drone_longitude = xml.getElementsByTagName("drone_longitude")[0].childNodes[0].textContent;
+                window.drone_longitude = xml.getElementsByTagName("drone_longitude")[0].childNodes[0].textContent;
+              }
+              
+              var drone_rel_altitude = 0;
+              if(xml.getElementsByTagName("drone_rel_altitude")[0].childNodes[0]) {
+                var drone_rel_altitude = xml.getElementsByTagName("drone_rel_altitude")[0].childNodes[0].textContent;
+              }
+              
+              var drone_groundspeed = 0;
+              if(xml.getElementsByTagName("groundspeed")[0]) {
+                var drone_groundspeed = xml.getElementsByTagName("groundspeed")[0].childNodes[0].textContent;
+              }
+              
+              // console.log('drone_groundspeed: ' + drone_groundspeed);
+
+              // Get fire spots areas if they exist. It won't if fire spots aren't detected
+              var fire_spot_1_area = 0;
+              if(xml.getElementsByTagName("n1")[0]) {
+                var fire_spot_1_area = xml.getElementsByTagName("n1")[0].textContent;
+              } 
+
+              var fire_spot_2_area = 0;
+              if(xml.getElementsByTagName("n2")[0]) {
+                var fire_spot_2_area = xml.getElementsByTagName("n2")[0].textContent;
+              } 
+
+              var fire_spot_3_area = 0;
+              if(xml.getElementsByTagName("n3")[0]) {
+                var fire_spot_3_area = xml.getElementsByTagName("n3")[0].textContent;
+              }
+  
+              // Compute total fire area. Areas are in string format, convert result to string also
+              var total_fire_area = (parseFloat(fire_spot_1_area) + parseFloat(fire_spot_2_area) + parseFloat(fire_spot_3_area)).toString();
+              // console.log('fire_spot_1_area: ' + fire_spot_1_area)
+              // console.log('fire_spot_2_area: ' + fire_spot_2_area);
+              // console.log('fire_spot_3_area: ' + fire_spot_3_area);
+              // console.log('total_fire_area: ' + total_fire_area);
+
+              var fire_point = new google.maps.LatLng(
+                    parseFloat(fire_spot_latitude),
+                    parseFloat(fire_spot_longitude));
+
+              // Create marker info
+              var infowincontent = document.createElement('div');
+              var strong = document.createElement('strong');
+              strong.textContent = 'Fire Pattern Centroid'
+              infowincontent.appendChild(strong);
+              infowincontent.appendChild(document.createElement('br'));
+
+              // Show data rounding decimals. Convert first from string to float
+              var text = document.createElement('text');
+              text.textContent = '[ Total Area: ' + parseFloat(total_fire_area).toFixed(1) + ' m2'
+                                + ' ][ Lat: ' + parseFloat(fire_spot_latitude).toFixed(5)
+                                + ' ][ Lon: ' + parseFloat(fire_spot_longitude).toFixed(5) + ' ]';
+              infowincontent.appendChild(text);
+
+              // var type = markerElem.getAttribute('type');
+              var type = 'fire_position';
+              var icon = customLabel[type] || {};
+
+              if (window.fire_marker){
+                  window.fire_marker.setMap(null);
+                  window.fire_marker = null;
+              }
+              window.fire_marker = new google.maps.Marker({
+                map: map,
+                position: fire_point,
+                icon: {url: "https://maps.google.com/mapfiles/ms/icons/orange-dot.png",
+                          scaledSize: new google.maps.Size(50, 50), // scaled size
+                        },
+                label: icon.label
+              });
+
+              fire_marker.addListener('click', function() {
+                infoWindow.setContent(infowincontent);
+                infoWindow.open(map, fire_marker);
+              });
+
+              ////// -------- Show drone GPS coordinates on the map -------- //////
+              if(is_initializing) {
+                // Re-center google map
+                // const center = new google.maps.LatLng(drone_latitude, drone_longitude);
+                const center = new google.maps.LatLng(window.drone_latitude, window.drone_longitude);
+                window.map.panTo(center);
+                is_initializing = false;
+              }
+
+              // var drone_point = new google.maps.LatLng(parseFloat(drone_latitude), parseFloat(drone_longitude));
+              var drone_point = new google.maps.LatLng(parseFloat(window.drone_latitude), parseFloat(window.drone_longitude));
+
+              // Create marker info
+              var infowincontent2 = document.createElement('div');
+              var strong = document.createElement('strong');
+              strong.textContent = 'Air Strategist Drone'
+              infowincontent2.appendChild(strong);
+              infowincontent2.appendChild(document.createElement('br'));
+
+              var text = document.createElement('text');
+              // Show data rounding decimals. Convert first from string to float
+              text.textContent = '[ Ground Temp: ' + parseFloat(fire_temperature).toFixed(1) + '°C'
+                              + ' ][ Alt: ' + parseFloat(drone_rel_altitude).toFixed(1) + ' m'
+                                + ' ][ Groundspeed: ' + parseFloat(drone_groundspeed).toFixed(1) + ' m/s'
+                              // + ' ][ Lat: ' + parseFloat(drone_latitude).toFixed(5)
+                              // + ' ][ Lon: ' + parseFloat(drone_longitude).toFixed(5)
+                              + ' ][ Lat: ' + parseFloat(window.drone_latitude).toFixed(5)
+                              + ' ][ Lon: ' + parseFloat(window.drone_longitude).toFixed(5)
+                              + " ]";
+              infowincontent2.appendChild(text);
+
+              // var type = markerElem.getAttribute('type');
+              var type = 'drone_position';
+              var icon = customLabel[type] || {};
+
+              if (window.drone_marker){
+                  window.drone_marker.setMap(null);
+                  window.drone_marker = null;
+              }
+              window.drone_marker = new google.maps.Marker({
+                map: map,
+                position: drone_point,
+                // strokeColor: "blue"
+                icon: {url: "https://maps.google.com/mapfiles/ms/icons/blue-dot.png",
+                        scaledSize: new google.maps.Size(50, 50), // scaled size
+                      }, 
+                label: icon.label
+              });
+
+              drone_marker.addListener('click', function() {
+                infoWindow.setContent(infowincontent2);
+                infoWindow.open(map, drone_marker);
+              });
+
+              ////// -------- Draw fire polygons on the map -------- //////
+              // -------- Draw fire polygon 1 ----------------
+              if(xml.getElementsByTagName("poly_1")[0]) {
+                var poly_1_len = xml.getElementsByTagName("poly_1")[0].childNodes.length;
+                fire_poly_coord_array_1 = [];
+
+                for (var i = 0; i < poly_1_len; i = i + 2) {
+                  var latitude = xml.getElementsByTagName("poly_1")[0].childNodes[i].textContent;
+                  var longitude = xml.getElementsByTagName("poly_1")[0].childNodes[i+1].textContent;
+                  // console.log('latitude=' + latitude + ' | longitude=' + longitude);
+                  var gData = new google.maps.LatLng(parseFloat(latitude), parseFloat(longitude));
+                  // console.log('gData: ' + gData);
+                  fire_poly_coord_array_1.push(gData);
+                }
+                // console.log('fire_poly_coord_array_1: ' + fire_poly_coord_array_1);
+
+                // Construct the polygon.
+                var polygon_color = '#ff8a00';
+                if (window.fireSpot1){
+                    window.fireSpot1.setMap(null);
+                    window.fireSpot1 = null;
+                }
+                window.fireSpot1 = new google.maps.Polygon({
+                  paths: fire_poly_coord_array_1,
+                  strokeColor: polygon_color,
+                  strokeOpacity: 0.8,
+                  strokeWeight: 2,
+                  fillColor: polygon_color,
+                  fillOpacity: 0.35
+                });
+                window.fireSpot1.setMap(map);
+
+                // -------- Add a listener to fireSpot1 for the click event --------
+                // var fire_spot_1_area = xml.getElementsByTagName("n1")[0].textContent;
+
+                fireSpot1.addListener('click', showArrays1);
+
+                fireSpot1InfoWindow = new google.maps.InfoWindow;
+
+                /** @this {google.maps.Polygon} */
+                function showArrays1(event) {
+                  // Since this polygon has only one path, we can call getPath() to return the
+                  // MVCArray of LatLngs.
+                  var vertices = this.getPath();
+
+                  // Show data rounding decimals. Convert first from string to float
+                  var contentString = '<b>Fire Spot 1</b><br>'
+                                    + 'Area: ' + parseFloat(fire_spot_1_area).toFixed(1) + ' m2 <br>'
+                      + 'Clicked location: <br>' + parseFloat(event.latLng.lat()).toFixed(5) 
+                      + ',' + parseFloat(event.latLng.lng()).toFixed(5) + '<br>';
+
+                  // // Iterate over the vertices to show their coordinates
+                  // for (var i =0; i < vertices.getLength(); i++) {
+                  //   var xy = vertices.getAt(i);
+                  //   contentString += '<br>' + 'Coordinate ' + i + ':<br>' + xy.lat() + ',' + xy.lng();
+                  // }
+
+                  // Replace the info window's content and position.
+                  fireSpot1InfoWindow.setContent(contentString);
+                  fireSpot1InfoWindow.setPosition(event.latLng);
+
+                  fireSpot1InfoWindow.open(map);
+                }
+                // END: -------- Add a listener to fireSpot1 for the click event ---------
+              }
+              else {console.log('No Fire Polygon 1 received...')}
+              // END: -------- Draw fire polygon 1 ----------------
+
+              // -------- Draw fire polygon 2 ----------------
+              if(xml.getElementsByTagName("poly_2")[0]) {
+                var poly_2_len = xml.getElementsByTagName("poly_2")[0].childNodes.length;
+                fire_poly_coord_array_2 = [];
+
+                for (var i = 0; i < poly_2_len; i = i + 2) {
+                  var latitude = xml.getElementsByTagName("poly_2")[0].childNodes[i].textContent;
+                  var longitude = xml.getElementsByTagName("poly_2")[0].childNodes[i+1].textContent;
+                  // console.log('latitude=' + latitude + ' | longitude=' + longitude);
+                  var gData = new google.maps.LatLng(parseFloat(latitude), parseFloat(longitude));
+                  // console.log('gData: ' + gData);
+                  fire_poly_coord_array_2.push(gData);
+                }
+
+                // -----------------------
+                if (window.fireSpot2){
+                    window.fireSpot2.setMap(null);
+                    window.fireSpot2 = null;
+                }
+                window.fireSpot2 = new google.maps.Polygon({
+                  paths: fire_poly_coord_array_2,
+                  strokeColor: polygon_color,
+                  strokeOpacity: 0.8,
+                  strokeWeight: 2,
+                  fillColor: polygon_color,
+                  fillOpacity: 0.35
+                });
+                window.fireSpot2.setMap(map);
+
+                // -------- Add a listener to fireSpot2 for the click event --------
+                // var fire_spot_2_area = xml.getElementsByTagName("n2")[0].textContent;
+                // console.log('fire_spot_2_area: ' + fire_spot_2_area);
+                fireSpot2.addListener('click', showArrays2);
+
+                fireSpot2InfoWindow = new google.maps.InfoWindow;
+
+                /** @this {google.maps.Polygon} */
+                function showArrays2(event) {
+                  // Since this polygon has only one path, we can call getPath() to return the
+                  // MVCArray of LatLngs.
+                  var vertices = this.getPath();
+
+                  // Show data rounding decimals. Convert first from string to float
+                  var contentString = '<b>Fire Spot 2</b><br>'
+                                    + 'Area: ' + parseFloat(fire_spot_2_area).toFixed(1) + ' m2 <br>'
+                      + 'Clicked location: <br>' + parseFloat(event.latLng.lat()).toFixed(5) 
+                      + ',' + parseFloat(event.latLng.lng()).toFixed(5)  + '<br>';
+
+                  // // Iterate over the vertices to show their coordinates
+                  // for (var i =0; i < vertices.getLength(); i++) {
+                  //   var xy = vertices.getAt(i);
+                  //   contentString += '<br>' + 'Coordinate ' + i + ':<br>' + xy.lat() + ',' + xy.lng();
+                  // }
+
+                  // Replace the info window's content and position.
+                  fireSpot2InfoWindow.setContent(contentString);
+                  fireSpot2InfoWindow.setPosition(event.latLng);
+
+                  fireSpot2InfoWindow.open(map);
+                }
+                // END: -------- Add a listener to fireSpot1 for the click event ---------
+              }
+              else {console.log('No Fire Polygon 2 received...')}
+              // END: -------- Draw fire polygon 2 ----------------
+
+              // -------- Draw fire polygon 3 ---------------
+                if(xml.getElementsByTagName("poly_3")[0]) {
+                var poly_3_len = xml.getElementsByTagName("poly_3")[0].childNodes.length;
+                fire_poly_coord_array_3 = [];
+
+                for (var i = 0; i < poly_3_len; i = i + 2) {
+                  var latitude = xml.getElementsByTagName("poly_3")[0].childNodes[i].textContent;
+                  var longitude = xml.getElementsByTagName("poly_3")[0].childNodes[i+1].textContent;
+                  // console.log('latitude=' + latitude + ' | longitude=' + longitude);
+                  var gData = new google.maps.LatLng(parseFloat(latitude), parseFloat(longitude));
+                  // console.log('gData: ' + gData);
+                  fire_poly_coord_array_3.push(gData);
+                }
+                // console.log('fire_poly_coord_array_3: ' + fire_poly_coord_array_3);
+
+                if (window.fireSpot3){
+                    window.fireSpot3.setMap(null);
+                    window.fireSpot3 = null;
+                }
+                window.fireSpot3 = new google.maps.Polygon({
+                  paths: fire_poly_coord_array_3,
+                  strokeColor: polygon_color,
+                  strokeOpacity: 0.8,
+                  strokeWeight: 2,
+                  fillColor: polygon_color,
+                  fillOpacity: 0.35
+                });
+                window.fireSpot3.setMap(map);
+
+                // -------- Add a listener to fireSpot3 for the click event --------
+                // var fire_spot_3_area = xml.getElementsByTagName("n3")[0].textContent;
+                // console.log('fire_spot_3_area: ' + fire_spot_3_area);
+                fireSpot3.addListener('click', showArrays3);
+
+                fireSpot3InfoWindow = new google.maps.InfoWindow;
+
+                /** @this {google.maps.Polygon} */
+                function showArrays3(event) {
+                  // Since this polygon has only one path, we can call getPath() to return the
+                  // MVCArray of LatLngs.
+                  var vertices = this.getPath();
+
+                  // Show data rounding decimals. Convert first from string to float
+                  var contentString = '<b>Fire Spot 3</b><br>'
+                                    + 'Area: ' + parseFloat(fire_spot_3_area).toFixed(1)  + ' m2 <br>'
+                      + 'Clicked location: <br>' + parseFloat(event.latLng.lat()).toFixed(5) 
+                      + ',' + parseFloat(event.latLng.lng()).toFixed(5)  + '<br>';
+
+                  // // Iterate over the vertices to show their coordinates
+                  // for (var i =0; i < vertices.getLength(); i++) {
+                  //   var xy = vertices.getAt(i);
+                  //   contentString += '<br>' + 'Coordinate ' + i + ':<br>' + xy.lat() + ',' + xy.lng();
+                  // }
+
+                  // Replace the info window's content and position.
+                  fireSpot3InfoWindow.setContent(contentString);
+                  fireSpot3InfoWindow.setPosition(event.latLng);
+
+                  fireSpot3InfoWindow.open(map);
+                }
+                // END: -------- Add a listener to fireSpot3 for the click event ---------
+              }
+              else {console.log('No Fire Polygon 3 received...')}
+              // END: -------- Draw fire polygon 3 ---------------
+
+            });
+            ////// END: -------- Refresh drone telemetry data (drone, fire pos, fire polygons ---------
+          }
+          //////// END: -------- Refresh map  ---------------------------
+
+        }
+
+      // console.log(fire_poly_coord_array_1);
+
+        function downloadUrl(url, callback) {
+          var request = window.ActiveXObject ?
+            new ActiveXObject('Microsoft.XMLHTTP') :
+            new XMLHttpRequest;
+
+        request.onreadystatechange = function() {
+          if (request.readyState == 4) {
+            request.onreadystatechange = doNothing;
+            callback(request, request.status);
+          }
+        };
+
+        request.open('GET', url, true);
+        request.send(null);
+      } // END: initMap
+
+      function crew_memberChange() {
+        var crewMemberDropdown = document.getElementById("crew_member");
+        window.sel_crew_member_name = crewMemberDropdown.options[crewMemberDropdown.selectedIndex].text;
+
+        window.sel_crew_member_idx = crewMemberDropdown.value;
+
+        console.log('sel_crew_member_idx: ', window.sel_crew_member_idx)
+        console.log('sel_crew_member_name: ', window.sel_crew_member_name)
+
+        window.task_cmd_post_data.cmd_value = window.task_command;
+        window.task_cmd_post_data.sel_crew_member_name = window.sel_crew_member_name;
+        window.task_cmd_post_data.sel_crew_member_idx = window.sel_crew_member_idx;
+
+        console.log('task_cmd_post_data: ', window.task_cmd_post_data);
+
+        $.ajax({
+              type: "POST",
+              url: "/airstrategist/receive_drone_task_cmd.php",
+              data: window.task_cmd_post_data,
+          }).done(function(data) {
+                  console.log('server response: ', data);
+        });
+      }
+
+      function drone_taskChange() {
+
+        window.task_command = document.getElementById("drone_task").value;
+        console.log('task_command: ', window.task_command)
+
+        window.task_cmd_post_data.cmd_value = window.task_command;
+        window.task_cmd_post_data.sel_crew_member_name = window.sel_crew_member_name;
+        window.task_cmd_post_data.sel_crew_member_idx = window.sel_crew_member_idx;
+
+        console.log('task_cmd_post_data: ', window.task_cmd_post_data);
+
+        $.ajax({
+            type: "POST",
+            // url: "/airstrategist/ajax_post.php",
+            url: "/airstrategist/receive_drone_task_cmd.php",
+            data: window.task_cmd_post_data,
+        }).done(function(data) {
+                console.log('server response: ', data);
+        });
+      }
+
+      ////// -------- Get current weather ---------------------------
+      setInterval(getCurrentWeather, 3000);
+      
+      function getCurrentWeather() {
+        if(window.drone_latitude != null && window.drone_longitude != null) {
+          link = "https://api.openweathermap.org/data/2.5/weather?lat=" + window.drone_latitude
+          + "&lon=" + window.drone_longitude + "&units=metric&apikey=1d8b6e4dc22af1c527bbda9bdec6ee4f";
+          
+          var request = new XMLHttpRequest();
+
+          request.open('GET',link,true);
+
+          request.onload = function(){
+            var obj = JSON.parse(this.response);
+            if (request.status >= 200 && request.status < 400) {
+              // var temp = obj.main.temp;
+              var temp = obj.main.temp;
+              var humidity = obj.main.humidity;
+              var weather_main = obj.weather[0].main;
+              var weather_description = obj.weather[0].description;
+              var wind_speed = obj.wind.speed;
+              var wind_direction = obj.wind.deg;
+              var cloudiness = obj.clouds.all;
+
+
+              console.log("CURRENT WEATHER: You have it!", temp);
+              document.getElementById('current_weather').innerHTML = "<strong>Current weather:</strong><br>"
+                + 'Temp: ' + temp + "°C | RH: " + humidity
+                + "% | Weather: " + weather_main + ", " + weather_description
+                + " | Wind: " + wind_speed + "m/s, " + wind_direction + "° | Clouds: " + cloudiness + "%";
+            }
+            else{
+              console.log("CURRENT WEATHER: That didn't work...");
+            }
+          }
+          request.send();
+        }
+      }
+      ////// END: -------- Get current weather ---------------------------
+
+      ////// -------- Get the weather forecast ---------------------------
+      setInterval(getWeatherForecast, 5000);
+
+      function getWeatherForecast() {
+        if(window.drone_latitude != null && window.drone_longitude != null) {
+          link = "https://api.openweathermap.org/data/2.5/forecast?lat=" + window.drone_latitude
+          + "&lon=" + window.drone_longitude + "&units=metric&apikey=1d8b6e4dc22af1c527bbda9bdec6ee4f";
+          
+          var request = new XMLHttpRequest();
+
+          request.open('GET',link,true);
+
+          request.onload = function(){
+            var obj = JSON.parse(this.response);
+
+            var num_forecasts = 8;
+
+            var weather_forecast_html = "<strong>Three-hour forecasts:</strong>";
+            if (request.status >= 200 && request.status < 400) {
+              for(var idx = 0; idx < num_forecasts; ++idx) {
+                var temp = obj.list[idx].main.temp;
+                var humidity = obj.list[idx].main.humidity;
+                var weather_main = obj.list[idx].weather[0].main;
+                var weather_description = obj.list[idx].weather[0].description;
+                var wind_speed = obj.list[idx].wind.speed;
+                var wind_direction = obj.list[idx].wind.deg;
+                var cloudiness = obj.list[idx].clouds.all;
+
+                // Sometimes the following element is absent. Defaulting to zero:
+                var rain_3hr = "0";
+                if (obj.list[idx].rain && obj.list[idx].rain['3h']) {
+                    var rain_3hr = obj.list[idx].rain['3h'];
+                  }
+
+                weather_forecast_html = weather_forecast_html + '<br><strong>+' + (idx+1)*3 + 'Hrs></strong> Temp: ' + temp + "°C | RH: " + humidity
+                + "% | Weather: " + weather_main + ", " + weather_description
+                + " | Rain: " + rain_3hr
+                + "mm | Wind: " + wind_speed + "m/s, " + wind_direction + "° | Clouds: " + cloudiness + "%";
+              }
+              console.log("WEATHER FORECAST: You have it!", temp);
+
+              document.getElementById('weather_forecast').innerHTML = weather_forecast_html;
+ 
+            }
+            else{
+              console.log("WEATHER FORECAST: That didn't work...");
+            }
+          }
+          request.send();
+        }
+      }
+      ////// END: -------- Get the weather forecast ---------------------------
+
+      function doNothing() {}
+
+    </script>
+    <script async defer
+    src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCV_YzdlZsgjKliFw_seoe1AwuQwFvdePE&callback=initMap">
+    </script>
+  </body>
+</html>
