@@ -805,7 +805,7 @@
       function getCurrentWeather() {
         if(window.drone_latitude != null && window.drone_longitude != null) {
           link = "https://api.openweathermap.org/data/2.5/weather?lat=" + window.drone_latitude
-          + "&lon=" + window.drone_longitude + "&units=metric&apikey=1d8b6e4dc22af1c527bbda9bdec6ee4f";
+          + "&lon=" + window.drone_longitude + "&units=metric&apikey=<Put your API key here>";
           
           var request = new XMLHttpRequest();
 
@@ -845,7 +845,7 @@
       function getWeatherForecast() {
         if(window.drone_latitude != null && window.drone_longitude != null) {
           link = "https://api.openweathermap.org/data/2.5/forecast?lat=" + window.drone_latitude
-          + "&lon=" + window.drone_longitude + "&units=metric&apikey=1d8b6e4dc22af1c527bbda9bdec6ee4f";
+          + "&lon=" + window.drone_longitude + "&units=metric&apikey=<Put your API key here>";
           
           var request = new XMLHttpRequest();
 
@@ -896,7 +896,7 @@
 
     </script>
     <script async defer
-    src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCV_YzdlZsgjKliFw_seoe1AwuQwFvdePE&callback=initMap">
+    src="https://maps.googleapis.com/maps/api/js?key=<Put your API key here>&callback=initMap">
     </script>
   </body>
 </html>
